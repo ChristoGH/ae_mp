@@ -55,7 +55,7 @@ def day_filter_fn(df,day):
 
 def range_fn(df, day_filter):
    on_high=max(df.loc[day_filter, 'high'])
-   on_low=max(df.loc[day_filter, 'low'])   
+   on_low=min(df.loc[day_filter, 'low'])   
    on_range=on_high-on_low
    return on_high, on_low, on_range
 
