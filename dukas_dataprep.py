@@ -12,6 +12,7 @@ import sys
 sys.path.append("/home/lnr-ai/github_repos/fxcm/")
 import os
 os.chdir('/home/lnr-ai/github_repos/eximia/')
+os.chdir('/media/lnr-ai/christo/github_repos/ae_mp/')
 import pandas as pd
 import logging
 import numpy as np
@@ -268,6 +269,12 @@ def ud_df(gf):
         gf.loc[gf['date']==d,'universaldate']=u
    return gf
 
+def timestamp_intseconds_fn(df, timestamp_field):
+   x=df[timestamp_field][0]
+   seconds_f= lambda x:(time.mktime(x.timetuple())-time.mktime(datetime.datetime(x.year,x.month,x.day).timetuple()))
+   df[timestamp_field+'_int_seconds']=df[timestamp_field].apply(seconds_f)
+   return df
+
 #%%
    
    
@@ -297,7 +304,10 @@ def eximia_wrangle_fn(fxcm_df):
    fxcm_df=ny_timestamp(fxcm_df)
    fxcm_df=london_timestamp(fxcm_df)
    fxcm_df=jhb_timestamp(fxcm_df)
-   # fxcm_df=second_fn(fxcm_df)
+   fxcm_df=timestamp_intseconds_fn(df=fxcm_df.copy(), timestamp_field='timestamp')
+   fxcm_df=timestamp_intseconds_fn(df=fxcm_df.copy(), timestamp_field='ny_timestamp')
+   fxcm_df=timestamp_intseconds_fn(df=fxcm_df.copy(), timestamp_field='london_timestamp')
+   fxcm_df=timestamp_intseconds_fn(df=fxcm_df.copy(), timestamp_field='jhb_timestamp')
    fxcm_df=int_seconds_fn(fxcm_df)
    # fxcm_df=mp_period_fn(fxcm_df)
    # fxcm_df=universaldate_column_fn(fxcm_df)
@@ -405,4 +415,5 @@ tick_symbol='USD/ZAR'
 data=pd.read_csv(eximia_candles_filename+'.csv')   
 data=duka_tick_prep_fn(data)
 eximia_df=eximia_wrangle_fn(data)
-eximia_df.to_csv(eximia_candles_filename+'_wrangled'+ '.csv')  
+
+eximia_df.to_csv(eximia_candles_filename+'_wrangled'+ '.csv')
