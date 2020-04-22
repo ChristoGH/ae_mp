@@ -24,7 +24,7 @@ from pandas.tseries.offsets import BDay
 from fxcm_timezone_lib import london_timestamp, ny_timestamp, jhb_timestamp
 #from datetime import datetime
 import sys
-
+import time
 MP_DUKA_DATETIME_FORMAT='%d.%m.%Y %H:%M:%S.%f'
 
 #%%
@@ -401,19 +401,51 @@ def duka_tick_prep_fn(dukas_df):
 
 #%%
 eximia_candles_filename = 'data/USDZAR_Candlestick_5_M_BID_01.01.2019-08.02.2020'
-# log_filename = 'data/logging_fxcm_candles.log'
 tick_symbol='USD/ZAR'
-# config_file='/home/lnr-ai/github_repos/fxcm/config/fxcm.cfg'
-# period='m30'
-# nhistory=3000
-# logging.basicConfig(format='%(asctime)s %(message)s', filename=log_filename, level=logging.DEBUG)
-#logging.debug('This message should go to the log file')
-#logging.info('So should this')
-#logging.warning('And this, too')
-#logging.error('This is an error message')
-
-data=pd.read_csv(eximia_candles_filename+'.csv')   
-data=duka_tick_prep_fn(data)
+data=pd.read_csv(eximia_candles_filename+'.csv')
+#%%
+eximia_candles_filename_merge = 'data/USDZAR_Candlestick_5_M_BID_08.02.2020-20.04.2020'
+tick_symbol='USD/ZAR'
+data_merge=pd.read_csv(eximia_candles_filename_merge+'.csv')
+#%%
+set(list(data))-set(list(data_merge))
+# data_merge.set_index('Gmt time',inplace=True)
+# data.set_index('Gmt time',inplace=True)
+print(data.shape,' and ', data_merge.shape)
+# df=data.merge(data_merge, left_index=True, right_index=True, how='inner')
+df=data.append(data_merge)
+np.where(df.duplicated())
+df.drop_duplicates(inplace=True)
+print(len(list(data.index)),len(list(set(data.index))))
+#%%
+data=duka_tick_prep_fn(df)
 eximia_df=eximia_wrangle_fn(data)
+savefilename='data/alldata'
+eximia_df.to_csv(savefilename+'_wrangled'+ '.csv')
 
-eximia_df.to_csv(eximia_candles_filename+'_wrangled'+ '.csv')
+#%%
+for i in range(14.31091,14.72770,0.00005): 
+   print(i)
+nominal=10**(-5)
+delta=0.00015
+low=14.31091
+high=14.72770
+# delta=int(0.00015*10**5)
+# low=int(14.31091*10**5)
+# high=int(14.72770*10**5)
+# lowi=int(np.round(np.floor(low/delta)*delta))
+# highi=int(np.round(np.floor(high/delta)*delta))
+# (highi-lowi)*delta
+for i in range(lowi,highi,delta):
+   print(i)
+
+def make_tick_fn(delta, high, low, nominal):
+   d=int(delta/nominal)
+   l=int(low/nominal)
+   h=int(high/nominal)
+   lowi=int(np.round(np.floor(l/d)*d))
+   highi=int(np.round(np.floor(h/d)*d))
+   return np.arange(lowi,highi,d)
+
+make_tick_fn(delta, high, low, nominal)
+np.arange(lowi,highi,delta)
