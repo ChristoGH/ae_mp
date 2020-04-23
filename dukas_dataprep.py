@@ -400,6 +400,34 @@ def duka_tick_prep_fn(dukas_df):
    return dukas_df
 
 #%%
+
+def significant_price_fn(price_range, significant_figs):
+   return [int(np.round((p*10**significant_figs))) for p in price_range]
+
+def unique_price_range_fn(unique_price_list, significant_figs):
+   return [np.round(u/(10**(significant_figs)),significant_figs) for u in unique]
+
+def digital_price_range_fn(price_range, significant_figs):
+   pl=significant_price_fn(price_range, significant_figs)
+   (upl, count_list) = np.unique(pl, return_counts=True)
+   unique_price_list=unique_price_range_fn(upl, significant_figs)
+   return unique_price_list, count_list
+
+def digital_fn(x, delta, significant_figs):
+   # this function digitizes a single price:
+   return np.round(np.floor(x/delta)*delta,significant_figs)
+
+def make_tickbins_fn(delta, high, low, significant_figs):
+   # This function is used at every bar, using only the high and low,
+   # and the output to be appended
+   # to a previous result to arrive at a raw (cumulative) result of 
+   # digitzed prices,
+   # based on delta and significant_figs
+   l=digital_fn(low, delta, significant_figs)
+   h=digital_fn(high, delta, significant_figs)
+   return np.arange(l,h,delta)
+
+#%%
 eximia_candles_filename = 'data/USDZAR_Candlestick_5_M_BID_01.01.2019-08.02.2020'
 tick_symbol='USD/ZAR'
 data=pd.read_csv(eximia_candles_filename+'.csv')
@@ -424,9 +452,8 @@ savefilename='data/alldata'
 eximia_df.to_csv(savefilename+'_wrangled'+ '.csv')
 
 #%%
-for i in range(14.31091,14.72770,0.00005): 
-   print(i)
-nominal=10**(-5)
+significant_figs=5
+nominal=10**(significant_figs)
 delta=0.00015
 low=14.31091
 high=14.72770
@@ -436,16 +463,53 @@ high=14.72770
 # lowi=int(np.round(np.floor(low/delta)*delta))
 # highi=int(np.round(np.floor(high/delta)*delta))
 # (highi-lowi)*delta
-for i in range(lowi,highi,delta):
-   print(i)
+# nominal=10**significant_figs
+d=int(delta*nominal)
+# l=int(low/nominal)
+# h=int(high/nominal)
+l=digital_fn(low, delta, significant_figs)
+h=digital_fn(high, delta, significant_figs)
+np.arange(l,h,delta)
 
-def make_tick_fn(delta, high, low, nominal):
-   d=int(delta/nominal)
-   l=int(low/nominal)
-   h=int(high/nominal)
-   lowi=int(np.round(np.floor(l/d)*d))
-   highi=int(np.round(np.floor(h/d)*d))
-   return np.arange(lowi,highi,d)
+significant_figs=5
+delta=0.00015
+low=14.72494
+high=14.72770
+price_range=[]
+pr=make_tickbins_fn(delta, high, low, significant_figs)
+price_range=np.append(price_range,pr)
+# significant_figs=5
+# delta=0.00015
+low=14.72704
+high=14.72770
+pr=make_tickbins_fn(delta, high, low, significant_figs)
+price_range=np.append(price_range,pr)
 
+low=14.72760
+high=14.72808
+pr=make_tickbins_fn(delta, high, low, significant_figs)
+price_range=np.append(price_range,pr)
+
+low=14.72721
+high=14.72769
+pr=make_tickbins_fn(delta, high, low, significant_figs)
+price_range=np.append(price_range,pr)
+
+
+
+digital_price_range_fn(price_range, significant_figs)
+
+#%%
+
+# def price_range_fn(pricelist, high, low, significant_figs):
+#    l=digital_fn(low, delta, significant_figs)
+#    h=digital_fn(high, delta, significant_figs)
+#    return np.arange(l,h,delta)
+
+#%%
+loadfilename = 'data/alldata_wrangled'
+tick_symbol='USD/ZAR'
+data=pd.read_csv(loadfilename+'.csv')
+#%%
 make_tick_fn(delta, high, low, nominal)
 np.arange(lowi,highi,delta)
