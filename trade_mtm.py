@@ -44,39 +44,86 @@ ae_df.columns
 #        'previous_business_day', 'five_previous_business_day'],
 #       dtype='object')
 
-df=ae_df[2000:2121].copy()
 
+
+def stoploss_fn(exit_price, exit_low,entry_price,entry_low):
+   stop_loss0=exit_price<entry_price      
+   stop_loss1=exit_low<entry_price
+   stop_loss2=exit_low<entry_low        
+   return stop_loss0,stop_loss1,stop_loss2
+
+def mtm_fn(max_mtm, exit_price, entry_price):
+   mtm=exit_price-entry_price
+   max_mtm=max(max_mtm,mtm)   
+   return mtm, max_mtm
+
+def stop_fn(count,in_bounds,stop_loss0,stop_loss1,stop_loss2):
+   stop_iter=False
+   stop_ind=-1
+   if stop_loss0:
+      stop_iter=True
+      stop_ind=0
+      print('-stop_loss0: mtm<0-----------------------')
+   if (count>1)&(stop_loss1):
+      stop_iter=True
+      stop_ind=1
+      print('-stop_loss1: current low<entry price--------------------------')
+   if (stop_loss2):
+      stop_iter=True
+      stop_ind=2
+      print('-stop_loss2: current low<entry low--------------------------')         
+   if (not in_bounds):
+      stop_iter=True
+      print('-out of bounds----------------------')
+   return stop_iter,stop_ind
+#%%
+df=ae_df[2000:2121].copy()
 for entry_index, (df_index, entry_datetime, entry_high,entry_low,entry_price) in enumerate(zip(df.index, df['datetime'], df['high'], df['low'], df['close'])):
    print(entry_index, df_index)
    count=0
    index=entry_index
+   in_bounds=(index+2)<df.shape[0]   
    current_price=entry_price
-   stop=False
+   stop_iter=False
    max_mtm=0
-   stop_loss=False
-   in_bounds=True
-   while in_bounds&(not stop):
+   stop_loss0=False #the CURRENT candle close does not fall below the ORIGINAL 
+   # candle close, ie mtm does not go < 0
+   stop_loss1=False #the CURRENT candle low does not fall below the ORIGINAL 
+   # candle low 
+   stop_loss2=False #the CURRENT candle low does not fall below the ORIGINAL 
+   # entry price
+   # in_bounds=True
+   while (in_bounds&(not stop_iter)):
       count+=1
       index+=1
       in_bounds=(index+2)<df.shape[0]
-      print(in_bounds, index+2, df.shape[0])
+      print(in_bounds, in_bounds&(not stop), stop_iter,index+2, df.shape[0])
       current_price=df.iloc[index].close
       current_high=df.iloc[index].high
       current_low=df.iloc[index].low
       current_datetime=df.iloc[index].datetime
-      mtm=current_price-entry_price
-      max_mtm=max(max_mtm,mtm)
-      stop_loss=current_low<entry_price
-      print(df_index, entry_index, index, entry_datetime, current_datetime, entry_price,current_price,mtm,max_mtm) 
-      if mtm<0:
-         stop=True
-         print('-negative mtm-----------------------')
-      if (count>1)&(stop_loss):
-         stop=True
-         print('-stop loss--------------------------')
-      if (not in_bounds):
-         print(in_bounds,not in_bounds)
-         print('-out of bounds----------------------')
+      # mtm=current_price-entry_price
+      # max_mtm=max(max_mtm,mtm)
+      mtm, max_mtm=mtm_fn(max_mtm, current_price, entry_price)
+      stop_loss0,stop_loss1,stop_loss2=stoploss_fn(current_price,current_low,entry_price,entry_low)
+      # stop_loss0=current_price<entry_price      
+      # stop_loss1=current_low<entry_price
+      # stop_loss2=current_low<entry_low      
+      print(df_index, entry_index, index, count, entry_datetime, current_datetime, entry_price,current_price,mtm,max_mtm) 
+      # if stop_loss0:
+      #    stop=True
+      #    print('-stop_loss0: mtm<0-----------------------')
+      # if (count>1)&(stop_loss1):
+      #    stop=True
+      #    print('-stop_loss1: current low<entry price--------------------------')
+      # if (stop_loss2):
+      #    stop=True
+      #    print('-stop_loss1: current low<entry low--------------------------')         
+      # if (not in_bounds):
+      #    # print(in_bounds,not in_bounds)
+      #    print('-out of bounds----------------------')
+      stop_iter,stop_ind=stop_fn(count,in_bounds,stop_loss0,stop_loss1,stop_loss2)
+         
       
       
    
