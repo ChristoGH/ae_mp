@@ -22,10 +22,12 @@ import datetime as datetime
 from datetime import datetime as dt
 from pandas import Timestamp
 from pandas.tseries.offsets import BDay
-from fxcm_timezone_lib import london_timestamp, ny_timestamp, jhb_timestamp
+# from fxcm_timezone_lib import london_timestamp, ny_timestamp, jhb_timestamp
 #from datetime import datetime
 import sys
 import time
+from dl_dataprep_lib import digital_fn
+from trade_mtm_lib import stoploss_fn, mtm_fn, stop_fn
 MP_DUKA_DATETIME_FORMAT='%d.%m.%Y %H:%M:%S.%f'
 #%%
 loadfilename = 'data/alldata_wrangled'
@@ -43,42 +45,13 @@ ae_df.columns
 #        'int_seconds', 'universaldate', 'is_business_day',
 #        'previous_business_day', 'five_previous_business_day'],
 #       dtype='object')
+def digitize_candle(high,low,close):
+   return digital_fn(high), digital_fn(low), digital_fn(close)
 
-
-
-def stoploss_fn(exit_price, exit_low,entry_price,entry_low):
-   stop_loss0=exit_price<entry_price      
-   stop_loss1=exit_low<entry_price
-   stop_loss2=exit_low<entry_low        
-   return stop_loss0,stop_loss1,stop_loss2
-
-def mtm_fn(max_mtm, exit_price, entry_price):
-   mtm=exit_price-entry_price
-   max_mtm=max(max_mtm,mtm)   
-   return mtm, max_mtm
-
-def stop_fn(count,in_bounds,stop_loss0,stop_loss1,stop_loss2):
-   stop_iter=False
-   stop_ind=-1
-   if stop_loss0:
-      stop_iter=True
-      stop_ind=0
-      print('-stop_loss0: mtm<0-----------------------')
-   if (count>1)&(stop_loss1):
-      stop_iter=True
-      stop_ind=1
-      print('-stop_loss1: current low<entry price--------------------------')
-   if (stop_loss2):
-      stop_iter=True
-      stop_ind=2
-      print('-stop_loss2: current low<entry low--------------------------')         
-   if (not in_bounds):
-      stop_iter=True
-      print('-out of bounds----------------------')
-   return stop_iter,stop_ind
 #%%
 df=ae_df[2000:2121].copy()
 for entry_index, (df_index, entry_datetime, entry_high,entry_low,entry_price) in enumerate(zip(df.index, df['datetime'], df['high'], df['low'], df['close'])):
+   entry_high,entry_low,entry_price=digitize_candle(entry_high,entry_low,entry_price)
    print(entry_index, df_index)
    count=0
    index=entry_index
@@ -97,7 +70,7 @@ for entry_index, (df_index, entry_datetime, entry_high,entry_low,entry_price) in
       count+=1
       index+=1
       in_bounds=(index+2)<df.shape[0]
-      print(in_bounds, in_bounds&(not stop), stop_iter,index+2, df.shape[0])
+      print(in_bounds, in_bounds&(not stop_iter), stop_iter,index+2, df.shape[0])
       current_price=df.iloc[index].close
       current_high=df.iloc[index].high
       current_low=df.iloc[index].low

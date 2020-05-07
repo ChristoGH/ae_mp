@@ -27,36 +27,9 @@ from pandas.tseries.offsets import BDay
 import sys
 import time
 MP_DUKA_DATETIME_FORMAT='%d.%m.%Y %H:%M:%S.%f'
-
-#%%
-
-def significant_price_fn(price_range, significant_figs):
-   return [int(np.round((p*10**significant_figs))) for p in price_range]
-
-def unique_price_range_fn(unique_price_list, significant_figs):
-   return [np.round(u/(10**(significant_figs)),significant_figs) for u in unique]
-
-def digital_price_range_fn(price_range, significant_figs):
-   pl=significant_price_fn(price_range, significant_figs)
-   (upl, count_list) = np.unique(pl, return_counts=True)
-   unique_price_list=unique_price_range_fn(upl, significant_figs)
-   return unique_price_list, count_list
-
-def digital_fn(x, delta, significant_figs):
-   # this function digitizes a single price:
-   return np.round(np.floor(x/delta)*delta,significant_figs)
-
-def make_tickbins_fn(delta, high, low, significant_figs):
-   # This function is used at every bar, using only the high and low,
-   # and the output to be appended
-   # to a previous result to arrive at a raw (cumulative) result of 
-   # digitzed prices,
-   # based on delta and significant_figs
-   l=digital_fn(low, delta, significant_figs)
-   h=digital_fn(high, delta, significant_figs)
-   return np.arange(l,h,delta)
-
-
+from dl_dataprep_lib import significant_figs,delta,depth,width
+from dl_dataprep_lib import price_layer_fn,discrete_price_array_fn,return_array_fn
+from dl_dataprep_lib import digital_fn
 #%%
 
 loadfilename = 'data/alldata_wrangled'
@@ -78,41 +51,14 @@ np.log(np_h/np_h[0][0])
 
 x=np.arange(0,1440,1)
 np.reshape(x, (60, 24))
-#%%
-def discrete_delta_array_fn(price_array, delta):
-   return np.round(price_array/(delta),0)-int(np.round(price_array[0]/(delta),0))
-
-def discrete_price_array_fn(price_array, delta):
-   return np.round(price_array/(delta),0)
-
-def return_array_fn(price_array):
-   return np.log(price_array/price_array[0])
-
-def price_layer_fn(xarray, x, y, delta, significant_figs):
-   price_array=digital_fn(xarray, delta, significant_figs)
-   discrete_price_array=discrete_price_array_fn(price_array, delta)
-   return_array=return_array_fn(discrete_price_array)
-   layer=np.reshape(return_array,(x,y))
-   return layer
 
 #%%
-hd_array=digital_fn(xarray, delta, significant_figs)
-hd_discrete_array=np.round(hd_array/(delta),0)-int(np.round(hd_array[0]/(delta),0))
-hd_layer=np.reshape(hd_discrete_array,(x,y))
 
-significant_figs=5
-delta=0.00015
-depth=60
-width=24
 price_array=data.high[0:depth*width].values
 price_array=discrete_price_array_fn(price_array, delta)
 discrete_price_array=discrete_price_array_fn(price_array, delta)
 return_array=return_array_fn(discrete_price_array)
 
-x=np.arange(0,1440,1)
-h_panel=price_layer_fn(data.high[range(1440)].values, depth, width, delta, significant_figs)
-range(1440)
-data.iloc(list(x))
 
 h_panel=price_layer_fn(data.high[0:depth*width].values, depth, width, delta, significant_figs)
 l_panel=price_layer_fn(data.low[0:depth*width].values, depth, width, delta, significant_figs)
